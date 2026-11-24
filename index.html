@@ -125,7 +125,7 @@ label.choice{cursor:pointer}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DESMOS='https://www.desmos.com/calculator';
-const SAVE='u2-warmup-v2';
+const SAVE='u2-warmup-v3';
 function load(){ try{ return JSON.parse(localStorage.getItem(SAVE)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(SAVE, JSON.stringify(S)); }catch(e){} }
 
@@ -249,21 +249,20 @@ const PROBS=[
    {type:'draw', q:'Draw and label a diagram of the garden. Label the width, the length (using your expression), and the area.',
     model:()=>GARDEN_SVG,
     check:['A rectangle','Width labeled w','Length labeled 2w + 3','Area 189 ft² written inside or nearby']},
-   {type:'expr', eq:true, q:'Write an <b>equation</b> to model the area of the garden. Use w for the width.',
-    ph:'type your equation, e.g. ... = ...', target:w=>w*(2*w+3)-189,
-    errs:[{test:(f,src)=>!src.includes('=')&&same(f,w=>w*(2*w+3)), msg:'That is the area <b>expression</b>. Make it an equation: set it equal to the area, 189.'},
-          {test:(f,src)=>!src.includes('='), msg:'An equation needs an equals sign. What is the area equal to?'},
-          {test:f=>prop(f,w=>2*w+2*(2*w+3)-189), msg:'That is the <b>perimeter</b> (adding all four sides). Area = width × length.'},
-          {test:f=>prop(f,w=>2*w+3-189), msg:'That sets the <b>length</b> equal to the area. Area = width × length.'},
-          {test:f=>isLinear(f), msg:'Your equation has no w² term, so it is adding instead of multiplying. Area = width × length.'}],
-    hint:'Area of a rectangle = width × length. You already have an expression for each one. Set their product equal to the area.',
-    sol:'Area = width × length, so <b>w(2w + 3) = 189</b>, which is the same as 2w² + 3w − 189 = 0.'},
-   {type:'num', q:'Solve your equation for the width. (You can use the quadratic formula, or graph each side of your equation in Desmos using x instead of w and find where they cross.) What is the width, in feet?',
+   {type:'expr', pre:'A =', q:'Write an equation for the <b>area</b> of the garden. Use w for the width.',
+    ph:'in terms of w', target:w=>w*(2*w+3),
+    errs:[{test:f=>same(f,()=>189), msg:'189 is the area\'s value. Here, write A using w: area = width × length.'},
+          {test:f=>same(f,w=>2*w+2*(2*w+3)), msg:'That is the <b>perimeter</b> (adding all four sides). Area = width × length.'},
+          {test:f=>same(f,w=>2*w+3), msg:'That is just the <b>length</b>. Area = width × length.'},
+          {test:f=>isLinear(f), msg:'Your expression has no w² term, so it is adding instead of multiplying. Area = width × length.'}],
+    hint:'Area of a rectangle = width × length. You already have an expression for each one.',
+    sol:'A = width × length, so <b>A = w(2w + 3)</b> (or A = 2w² + 3w).'},
+   {type:'num', q:'The area is 189, so set your expression for A equal to 189 and solve for the width. (Use the quadratic formula, or in Desmos graph your area expression and y = 189, using x instead of w, and find where they cross.) What is the width, in feet?',
     ans:[9], tol:0.01,
     errs:[{test:v=>v.some(x=>Math.abs(x+10.5)<.01), msg:'A width can\'t be negative. Use the positive solution.'},
           {test:v=>v.some(x=>Math.abs(x-21)<.01), msg:'21 is the <b>length</b>. The width is the shorter side, w.'},
           {test:v=>v.length>1, msg:'Type only the width that makes sense (one number).'}],
-    hint:'Get everything on one side so it equals 0, then use the quadratic formula. Or, in Desmos, graph the left side and the right side of your equation (use x for w) and click where they cross.',
+    hint:'Set your expression equal to 189, then move everything to one side so it equals 0 and use the quadratic formula. Or graph both sides in Desmos (x for w) and click where they cross. Use the positive answer.',
     sol:'w(2w + 3) = 189 → 2w² + 3w − 189 = 0 → w = 9 or w = −10.5. Width can\'t be negative, so <b>w = 9 ft</b>.'},
    {type:'num', q:'What is the length, in feet?',
     ans:[21], tol:0.01,
@@ -416,7 +415,7 @@ function renderPart(p,i){
     if(st.hint&&!st.done) h+=`<div class="fb"><p><b>Hint:</b> ${pt.hint}</p></div>`;
     if(st.msg) h+=`<div class="fb ${st.done?'good':'bad'}"><p>${st.msg}</p></div>`;
   } else if(pt.type==='expr'){
-    h+=`<div class="numrow"><input id="in${i}" autocomplete="off" spellcheck="false" value="${esc(st.val||'')}" ${st.done?'disabled':''} aria-label="Answer for part ${L[i]}" placeholder="${esc(pt.ph)}" style="width:340px">
+    h+=`<div class="numrow">${pt.pre?`<label for="in${i}" class="mono" style="font-size:22px;font-weight:700">${pt.pre}</label>`:''}<input id="in${i}" autocomplete="off" spellcheck="false" value="${esc(st.val||'')}" ${st.done?'disabled':''} aria-label="Answer for part ${L[i]}" placeholder="${esc(pt.ph)}" style="width:340px">
       ${st.done?'':`<button class="btn primary" id="chk${i}">Check</button><button class="btn" id="hint${i}">Hint</button>${(st.tries||0)>=2?`<button class="btn" id="sol${i}">Show solution</button>`:''}`}</div>
       <p style="margin:6px 0 0;font-size:14px;color:var(--muted)">Type ^ for exponents (w^2). You can write 2w or 2*w.</p>`;
     if(st.hint&&!st.done) h+=`<div class="fb"><p><b>Hint:</b> ${pt.hint}</p></div>`;
@@ -483,7 +482,7 @@ function renderPart(p,i){
 function parseExpr(src, isEq){
   let s=src.toLowerCase().replace(/[−–]/g,'-').replace(/[×·]/g,'*').replace(/²/g,'^2').replace(/\s+/g,'');
   s=s.replace(/^(length|area|a|l)=/,'');
-  if(!isEq) s=s.replace(/^.*=/,'');
+  if(!isEq && s.includes('=')){ const parts=s.split('=').filter(Boolean); s=parts.find(x=>/[wx]/.test(x))||parts[parts.length-1]; }
   if(/[a-z]/.test(s.replace(/[wx]/g,''))) return 'Use only one letter, w, for the width. If you used another letter for the length, replace it with your expression for the length.';
   if(s.includes('w')&&s.includes('x')) return 'Use just one letter for the width (w).';
   s=s.replace(/x/g,'w');
