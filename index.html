@@ -125,7 +125,7 @@ label.choice{cursor:pointer}
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DESMOS='https://www.desmos.com/calculator';
-const SAVE='u2-warmup-v1';
+const SAVE='u2-warmup-v2';
 function load(){ try{ return JSON.parse(localStorage.getItem(SAVE)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(SAVE, JSON.stringify(S)); }catch(e){} }
 
@@ -235,21 +235,35 @@ const PROBS=[
   ]},
  {title:'Area and perimeter', short:'Area',
   prompt:`A rectangular garden has a length that is <b>3 more than twice its width</b>. Its area is <b>189 square feet</b>.`,
-  copy:'y=x(2x+3)',
+  copy:null,
   talk:'When you solve, you get one negative answer. Why can you throw it out?',
   parts:[
-   {type:'draw', q:'Draw and label a diagram of the garden. Use w for the width.',
+   {type:'expr', q:'Let w be the width. Write an expression for the <b>length</b> in terms of w.',
+    ph:'length = ...', target:w=>2*w+3,
+    errs:[{test:f=>same(f,w=>2*w), msg:'That is twice the width. The length is 3 <b>more</b> than that.'},
+          {test:f=>same(f,w=>3*w+2), msg:'Read it again: "<b>twice</b> its width" means 2w, and "3 more" means + 3.'},
+          {test:f=>same(f,w=>2*(w+3)), msg:'Careful: double the width <b>first</b>, then add 3.'},
+          {test:f=>same(f,w=>w+3), msg:'You have "3 more than the width." The length is 3 more than <b>twice</b> the width.'}],
+    hint:'"Twice the width" is 2 × w. "3 more than" means add 3.',
+    sol:'Length = <b>2w + 3</b>'},
+   {type:'draw', q:'Draw and label a diagram of the garden. Label the width, the length (using your expression), and the area.',
     model:()=>GARDEN_SVG,
     check:['A rectangle','Width labeled w','Length labeled 2w + 3','Area 189 ft² written inside or nearby']},
-   {type:'mc', q:'Which equation models the area of the garden?',
-    ch:['w(2w + 3) = 189','2w + 3 = 189','2w + 2(2w + 3) = 189','w + 2w + 3 = 189'], a:0,
-    why:['Right. Area = width × length = w(2w + 3).','That sets the length equal to the area. Area is width × length.','That is the <b>perimeter</b>, not the area. Area = width × length.','That adds the sides. Area multiplies them: w(2w + 3).']},
-   {type:'num', q:'Solve for the width. (Tip: graph y = x(2x + 3) and y = 189 in Desmos and find where they cross, or use the quadratic formula.) What is the width, in feet?',
+   {type:'expr', eq:true, q:'Write an <b>equation</b> to model the area of the garden. Use w for the width.',
+    ph:'type your equation, e.g. ... = ...', target:w=>w*(2*w+3)-189,
+    errs:[{test:(f,src)=>!src.includes('=')&&same(f,w=>w*(2*w+3)), msg:'That is the area <b>expression</b>. Make it an equation: set it equal to the area, 189.'},
+          {test:(f,src)=>!src.includes('='), msg:'An equation needs an equals sign. What is the area equal to?'},
+          {test:f=>prop(f,w=>2*w+2*(2*w+3)-189), msg:'That is the <b>perimeter</b> (adding all four sides). Area = width × length.'},
+          {test:f=>prop(f,w=>2*w+3-189), msg:'That sets the <b>length</b> equal to the area. Area = width × length.'},
+          {test:f=>isLinear(f), msg:'Your equation has no w² term, so it is adding instead of multiplying. Area = width × length.'}],
+    hint:'Area of a rectangle = width × length. You already have an expression for each one. Set their product equal to the area.',
+    sol:'Area = width × length, so <b>w(2w + 3) = 189</b>, which is the same as 2w² + 3w − 189 = 0.'},
+   {type:'num', q:'Solve your equation for the width. (You can use the quadratic formula, or graph each side of your equation in Desmos using x instead of w and find where they cross.) What is the width, in feet?',
     ans:[9], tol:0.01,
     errs:[{test:v=>v.some(x=>Math.abs(x+10.5)<.01), msg:'A width can\'t be negative. Use the positive solution.'},
           {test:v=>v.some(x=>Math.abs(x-21)<.01), msg:'21 is the <b>length</b>. The width is the shorter side, w.'},
           {test:v=>v.length>1, msg:'Type only the width that makes sense (one number).'}],
-    hint:'2w² + 3w − 189 = 0. Look for the positive solution.',
+    hint:'Get everything on one side so it equals 0, then use the quadratic formula. Or, in Desmos, graph the left side and the right side of your equation (use x for w) and click where they cross.',
     sol:'w(2w + 3) = 189 → 2w² + 3w − 189 = 0 → w = 9 or w = −10.5. Width can\'t be negative, so <b>w = 9 ft</b>.'},
    {type:'num', q:'What is the length, in feet?',
     ans:[21], tol:0.01,
@@ -363,7 +377,7 @@ function renderProb(p){
   $('#prob').innerHTML=`<section class="panel">
     <div class="eyebrow">Problem ${p+1} of ${PROBS.length} · ${P.title}</div>
     <p class="prompt">${P.prompt}</p>
-    <div class="row"><span class="mono" style="font-size:15px;color:var(--muted)">For Desmos:</span> <span class="eq">${esc(P.copy)}</span> <button class="btn small" id="copy">Copy</button></div>
+    ${P.copy?`<div class="row"><span class="mono" style="font-size:15px;color:var(--muted)">For Desmos:</span> <span class="eq">${esc(P.copy)}</span> <button class="btn small" id="copy">Copy</button></div>`:''}
     ${roleLine(p)}
     ${P.parts.map((pt,i)=>`<div class="part ${pst(p,i).done?'done':''}" id="part${i}"></div>`).join('')}
     <div class="talk"><b>${S.mode==='pair'?'Talk about it':'Think about it'}:</b> ${P.talk}</div>
@@ -372,7 +386,7 @@ function renderProb(p){
       <button class="btn primary" id="next">${p<PROBS.length-1?`Next: Problem ${p+2} →`:'Finish →'}</button>
     </div></section>`;
   P.parts.forEach((_,i)=>renderPart(p,i));
-  $('#copy').onclick=e=>copyText(P.copy,e.target);
+  if(P.copy) $('#copy').onclick=e=>copyText(P.copy,e.target);
   const pv=$('#prev'); if(pv) pv.onclick=()=>show(p-1);
   $('#next').onclick=()=>show(p+1);
 }
@@ -399,6 +413,12 @@ function renderPart(p,i){
   } else if(pt.type==='num'){
     h+=`<div class="numrow"><input id="in${i}" inputmode="decimal" autocomplete="off" value="${esc(st.val||'')}" ${st.done?'disabled':''} aria-label="Answer for part ${L[i]}" placeholder="${pt.ans.length>1?'e.g. 1, −4':'answer'}">
       ${st.done?'':`<button class="btn primary" id="chk${i}">Check</button><button class="btn" id="hint${i}">Hint</button>${(st.tries||0)>=2?`<button class="btn" id="sol${i}">Show solution</button>`:''}`}</div>`;
+    if(st.hint&&!st.done) h+=`<div class="fb"><p><b>Hint:</b> ${pt.hint}</p></div>`;
+    if(st.msg) h+=`<div class="fb ${st.done?'good':'bad'}"><p>${st.msg}</p></div>`;
+  } else if(pt.type==='expr'){
+    h+=`<div class="numrow"><input id="in${i}" autocomplete="off" spellcheck="false" value="${esc(st.val||'')}" ${st.done?'disabled':''} aria-label="Answer for part ${L[i]}" placeholder="${esc(pt.ph)}" style="width:340px">
+      ${st.done?'':`<button class="btn primary" id="chk${i}">Check</button><button class="btn" id="hint${i}">Hint</button>${(st.tries||0)>=2?`<button class="btn" id="sol${i}">Show solution</button>`:''}`}</div>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--muted)">Type ^ for exponents (w^2). You can write 2w or 2*w.</p>`;
     if(st.hint&&!st.done) h+=`<div class="fb"><p><b>Hint:</b> ${pt.hint}</p></div>`;
     if(st.msg) h+=`<div class="fb ${st.done?'good':'bad'}"><p>${st.msg}</p></div>`;
   } else if(pt.type==='draw'){
@@ -437,8 +457,49 @@ function renderPart(p,i){
       $('#hint'+i).onclick=()=>{ st.val=inp.value; st.hint=true; save(); renderPart(p,i); };
       const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.val=pt.ans.join(', '); st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
   }
+  if(pt.type==='expr'){
+    const inp=$('#in'+i);
+    const check=()=>{
+      st.val=inp.value; const src=inp.value.trim();
+      if(!src){ st.msg='Type your answer first.'; renderPart(p,i); return; }
+      const f=parseExpr(src, !!pt.eq);
+      if(typeof f==='string'){ st.msg=f; renderPart(p,i); return; }
+      st.tries=(st.tries||0)+1;
+      const right = pt.eq ? (src.includes('=') && prop(f,pt.target)) : same(f,pt.target);
+      if(right){ st.done=true; st.first=st.tries===1; st.msg='Correct! '+pt.sol; }
+      else { const e=(pt.errs||[]).find(e=>e.test(f,src)); st.msg=(e?e.msg:'Not quite. Check your work and try again.') + (st.tries>=2?' You can show the solution now if you need it.':''); }
+      save(); renderPart(p,i); renderSteps();
+      if(!st.done){ const n=$('#in'+i); n.focus(); }
+    };
+    if(!st.done){ $('#chk'+i).onclick=check; inp.onkeydown=e=>{ if(e.key==='Enter') check(); };
+      $('#hint'+i).onclick=()=>{ st.val=inp.value; st.hint=true; save(); renderPart(p,i); };
+      const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
+  }
   if(pt.type==='draw'){ const b=$('#cmp'+i); if(b) b.onclick=()=>{ st.done=true; save(); renderPart(p,i); renderSteps(); }; }
 }
+
+/* Turns typed math in w (or x) into a function. For an equation, returns left side minus right side.
+   Returns a message string if it can't read it. */
+function parseExpr(src, isEq){
+  let s=src.toLowerCase().replace(/[−–]/g,'-').replace(/[×·]/g,'*').replace(/²/g,'^2').replace(/\s+/g,'');
+  s=s.replace(/^(length|area|a|l)=/,'');
+  if(!isEq) s=s.replace(/^.*=/,'');
+  if(/[a-z]/.test(s.replace(/[wx]/g,''))) return 'Use only one letter, w, for the width. If you used another letter for the length, replace it with your expression for the length.';
+  if(s.includes('w')&&s.includes('x')) return 'Use just one letter for the width (w).';
+  s=s.replace(/x/g,'w');
+  if(!/^[0-9w+\-*/^().=]+$/.test(s)) return 'I can only read numbers, w, + − * / ^ and parentheses.';
+  const sides=s.split('=');
+  if(sides.length>2) return 'Use only one equals sign.';
+  const js=t=>t.replace(/(\d|w|\))(?=[w(])/g,'$1*').replace(/(w|\))(?=\d)/g,'$1*').replace(/\^/g,'**');
+  try{
+    const L=new Function('w','return ('+js(sides[0])+');'), R=sides.length>1?new Function('w','return ('+js(sides[1])+');'):()=>0;
+    const f=w=>L(w)-R(w); if(!isFinite(f(1.7))) throw 0; return f;
+  }catch(e){ return 'I couldn\'t read that. Check your parentheses and operation signs.'; }
+}
+const PTS=[1.3,2.7,4.1,5.9,8.2];
+const same=(f,g)=>PTS.every(w=>Math.abs(f(w)-g(w))<1e-6*Math.max(1,Math.abs(g(w))));
+const prop=(f,g)=>{ const k=f(PTS[0])/g(PTS[0]); return isFinite(k)&&Math.abs(k)>1e-9&&PTS.every(w=>Math.abs(f(w)-k*g(w))<1e-6*Math.max(1,Math.abs(k*g(w)))); };
+const isLinear=f=>{ const a=f(1),b=f(2),c=f(3); return Math.abs(a-2*b+c)<1e-9; };
 
 /* accepts "−2, −3", "x = 5 or x = -5", "±5", "+-5" */
 function parseNums(s){
