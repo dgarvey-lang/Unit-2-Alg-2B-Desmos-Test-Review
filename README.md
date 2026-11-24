@@ -8,7 +8,7 @@ Four problems, one for each kind of question on the test. The numbers are new, b
 1. **Solve by graphing:** 2x² + 10x + 12 = 0, plus a sketch
 2. **Two methods:** x² + 5 = 30
 3. **Projectile motion:** a ball thrown from a 48 ft cliff, h = −16t² + 64t + 48
-4. **Area:** a garden whose length is 3 more than twice its width, area 189 ft². Students write the length expression and the area equation (A = ...) themselves
+4. **Area:** a garden whose length is 3 more than twice its width, area 189 ft². Students write the length expression and the area equation themselves
 
 ## Features
 - **Partner mode:** Writer and Coach roles that switch each problem. **Solo mode:** talk-it-through prompts.
