@@ -98,8 +98,16 @@ label.choice{cursor:pointer}
 .talk{margin-top:16px;border-left:4px solid var(--blue);padding:6px 12px;background:var(--soft);border-radius:0 10px 10px 0}
 .nav{display:flex;justify-content:space-between;gap:10px;margin-top:18px;flex-wrap:wrap}
 /* tools */
-.desmos{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 16px}
-.desmos p{margin:0;font-size:15px;color:var(--muted)}
+.tabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.tab{border:2px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:7px 14px;font-weight:700;font-family:var(--display);font-size:17px}
+.tab[aria-selected="true"]{background:var(--blue);border-color:var(--blue);color:var(--blue-ink)}
+.tabs .grow{flex:1}
+.boardpanel{padding:14px 16px 16px}
+.dnote{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;color:var(--muted);margin:0 0 8px}
+.dnote a{color:var(--blue);font-weight:700}
+#dframe{display:block;width:100%;height:clamp(420px,calc(100vh - 190px),680px);border:1.5px solid var(--line);border-radius:10px;background:#fff}
+@media (max-width:900px){#dframe{height:480px}}
+.tools.big #dframe{height:calc(100vh - 150px)}
 .boardhead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .boardhead h2{font-size:20px}
 .toolbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
@@ -326,10 +334,19 @@ function renderMain(){
   <div class="layout">
     <main id="prob"></main>
     <aside class="tools" id="tools">
-      <section class="panel desmos"><div><b>Desmos is allowed on the test.</b><p>Opens in a new tab. Paste the equation with Copy.</p></div>
-        <a class="btn blue" href="${DESMOS}" target="_blank" rel="noopener">Open Desmos ↗</a></section>
       <section class="panel boardpanel">
-        <div class="boardhead"><h2>Scratch board</h2><span class="eyebrow" id="boardfor"></span></div>
+        <div class="tabs" role="tablist">
+          <button class="tab" role="tab" id="tabD" data-tab="desmos">Desmos</button>
+          <button class="tab" role="tab" id="tabB" data-tab="board">Scratch board</button>
+          <span class="grow"></span>
+          <button class="btn small" id="bigT">Bigger</button>
+        </div>
+        <div id="paneD" role="tabpanel" aria-labelledby="tabD">
+          <p class="dnote"><span>Desmos is allowed on the test. Use <b>Copy</b>, then click a line in Desmos and paste (Ctrl+V).</span><a href="${DESMOS}" target="_blank" rel="noopener">Open in new tab ↗</a></p>
+          <iframe id="dframe" title="Desmos graphing calculator" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
+        </div>
+        <div id="paneB" role="tabpanel" aria-labelledby="tabB">
+        <div class="boardhead"><span class="eyebrow" id="boardfor"></span></div>
         <div class="toolbar" role="toolbar" aria-label="Scratch board tools">
           <button class="swatch" data-pen="ink" aria-label="Black pen"><span style="background:var(--ink)"></span></button>
           <button class="swatch" data-pen="blue" aria-label="Blue pen"><span style="background:var(--pen-blue)"></span></button>
@@ -339,17 +356,28 @@ function renderMain(){
           <button class="btn small" id="gridT">Grid</button>
           <button class="btn small" id="undo">Undo</button>
           <button class="btn small" id="clear">Clear</button>
-          <button class="btn small" id="bigT">Bigger</button>
         </div>
         <div class="boardbox" id="boardbox"><canvas id="board" aria-label="Scratch board drawing area"></canvas></div>
         <p class="boardnote">Each problem has its own board. Draw with a mouse, finger, or stylus.</p>
+        </div>
       </section>
     </aside>
   </div>`;
   $('#restart').onclick=()=>{ if(confirm('Start over? This clears your answers and drawings.')){ try{localStorage.removeItem(SAVE);}catch(e){} S=null; setup={mode:'pair',names:['','']}; renderSetup(); } };
   Board.init();
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setTab(t.dataset.tab));
+  setTab(S.tab||'desmos');
   show(S.cur);
 }
+
+function setTab(t){
+  S.tab=t; save();
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.tab===t));
+  $('#paneD').hidden = t!=='desmos'; $('#paneB').hidden = t!=='board';
+  const f=$('#dframe'); if(t==='desmos' && !f.src) f.src=DESMOS;
+}
+/* switch to the scratch board when a part asks students to draw */
+function toBoard(){ if(S.tab!=='board') setTab('board'); }
 
 function renderSteps(){
   $('#steps').innerHTML=PROBS.map((p,i)=>`<button class="step" data-i="${i}" aria-current="${S.cur===i}">${i+1}. ${p.short}${probDone(i)?'<span class="ck">✓</span>':''}</button>`).join('')
@@ -422,7 +450,7 @@ function renderPart(p,i){
     if(st.hint&&!st.done) h+=`<div class="fb"><p><b>Hint:</b> ${pt.hint}</p></div>`;
     if(st.msg) h+=`<div class="fb ${st.done?'good':'bad'}"><p>${st.msg}</p></div>`;
   } else if(pt.type==='draw'){
-    if(!st.done) h+=`<button class="btn blue" id="cmp${i}">I drew it: compare with a model</button>`;
+    if(!st.done) h+=`<div class="row"><button class="btn" id="gob${i}">Open the scratch board</button><button class="btn blue" id="cmp${i}">I drew it: compare with a model</button></div>`;
     else h+=`<div class="model">${pt.model()}<div><b>Check your board. Does it have:</b><ul>${pt.check.map(c=>`<li>${c}</li>`).join('')}</ul></div></div>`;
   }
   el.innerHTML=h;
@@ -475,6 +503,7 @@ function renderPart(p,i){
       $('#hint'+i).onclick=()=>{ st.val=inp.value; st.hint=true; save(); renderPart(p,i); };
       const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
   }
+  if(pt.type==='draw'){ const g=$('#gob'+i); if(g) g.onclick=toBoard; }
   if(pt.type==='draw'){ const b=$('#cmp'+i); if(b) b.onclick=()=>{ st.done=true; save(); renderPart(p,i); renderSteps(); }; }
 }
 

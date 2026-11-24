@@ -12,7 +12,7 @@ Four problems, one for each kind of question on the test. The numbers are new, b
 
 ## Features
 - **Partner mode:** Writer and Coach roles that switch each problem. **Solo mode:** talk-it-through prompts.
-- **Open Desmos** button, plus a Copy button with each equation ready to paste.
+- **Desmos built in** next to the problem (split screen), plus a Copy button with each equation ready to paste.
 - A built-in **scratch board** with pens, eraser, undo, grid, and a bigger view. Each problem has its own board.
 - Instant feedback on common mistakes, hints, and worked solutions after two tries.
 - A finish screen with a self-rating for each topic and test reminders.
