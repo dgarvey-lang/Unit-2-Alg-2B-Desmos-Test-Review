@@ -124,6 +124,16 @@ label.choice{cursor:pointer}
 .conf{display:grid;gap:10px;margin-top:12px}
 .conf .item{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;border:1.5px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--paper)}
 .tips li{margin:6px 0}
+.scorebig{display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}
+.scorebig .num{font-family:var(--display);font-size:56px;font-weight:800;line-height:1}
+.scorebig .num span{font-size:28px;color:var(--muted)}
+.scorebig .pct{font-family:var(--mono);font-weight:700;font-size:20px;color:var(--accent)}
+.scorebig p{margin:0;max-width:44ch}
+.scorenote{font-size:14px;color:var(--muted);margin:6px 0 10px}
+table.scoretab{width:100%;border-collapse:collapse;margin-top:6px}
+.scoretab th,.scoretab td{text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--line)}
+.scoretab th{font-size:14px;color:var(--muted)}
+.step.extra{border-style:dashed}
 </style>
 </head>
 <body>
@@ -142,7 +152,8 @@ function graphSVG(f, [x0,x1], [y0,y1], dots){
   const W=260,H=220,P=22, X=x=>P+(x-x0)/(x1-x0)*(W-2*P), Y=y=>H-P-(y-y0)/(y1-y0)*(H-2*P);
   let g='';
   for(let x=Math.ceil(x0);x<=x1;x++) g+=`<line x1="${X(x)}" y1="${P}" x2="${X(x)}" y2="${H-P}" stroke="var(--grid)"/>`;
-  for(let y=Math.ceil(y0/2)*2;y<=y1;y+=2) g+=`<line x1="${P}" y1="${Y(y)}" x2="${W-P}" y2="${Y(y)}" stroke="var(--grid)"/>`;
+  const ys=[1,2,5,10,20,50,100,200].find(v=>(y1-y0)/v<=12)||500;
+  for(let y=Math.ceil(y0/ys)*ys;y<=y1;y+=ys) g+=`<line x1="${P}" y1="${Y(y)}" x2="${W-P}" y2="${Y(y)}" stroke="var(--grid)"/>`;
   g+=`<line x1="${P}" y1="${Y(0)}" x2="${W-P}" y2="${Y(0)}" stroke="var(--ink)" stroke-width="1.5"/><line x1="${X(0)}" y1="${P}" x2="${X(0)}" y2="${H-P}" stroke="var(--ink)" stroke-width="1.5"/>`;
   let d=''; for(let i=0;i<=120;i++){ const x=x0+(x1-x0)*i/120, y=f(x); if(y>y1+2) continue; d+=(d?'L':'M')+X(x).toFixed(1)+' '+Y(Math.max(y0,y)).toFixed(1); }
   g+=`<path d="${d}" fill="none" stroke="var(--pen-blue)" stroke-width="3"/>`;
@@ -150,24 +161,26 @@ function graphSVG(f, [x0,x1], [y0,y1], dots){
   g+=`<text x="${W-P+4}" y="${Y(0)+4}" font-size="12" fill="var(--ink)">x</text><text x="${X(0)+5}" y="${P-6}" font-size="12" fill="var(--ink)">y</text>`;
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Model sketch">${g}</svg>`;
 }
-const ROCKET_SVG=`<svg viewBox="0 0 260 220" role="img" aria-label="Model diagram of the ball thrown from a cliff">
+function rocketSVG(h0,v,what){ return `<svg viewBox="0 0 260 220" role="img" aria-label="Model diagram of the launch">
   <line x1="10" y1="196" x2="250" y2="196" stroke="var(--ink)" stroke-width="2"/>
   <text x="12" y="213" font-size="12" fill="var(--ink)" font-weight="700">ground: h = 0</text>
   <rect x="20" y="140" width="40" height="56" fill="var(--soft)" stroke="var(--ink)" stroke-width="1.5"/>
   <line x1="68" y1="140" x2="68" y2="196" stroke="var(--pen-red)" stroke-width="1.5"/>
-  <text x="72" y="172" font-size="12" fill="var(--pen-red)" font-weight="700">48 ft</text>
+  <text x="72" y="172" font-size="12" fill="var(--pen-red)" font-weight="700">${h0} ft</text>
   <path d="M40 140 Q 120 -10 215 196" fill="none" stroke="var(--pen-blue)" stroke-width="3" stroke-dasharray="6 5"/>
   <circle cx="40" cy="140" r="5" fill="var(--ink)"/><text x="10" y="132" font-size="12" fill="var(--ink)">t = 0</text>
   <circle cx="215" cy="196" r="5" fill="var(--pen-red)"/><text x="250" y="213" text-anchor="end" font-size="12" fill="var(--ink)">lands: t = ?</text>
-  <text x="70" y="30" font-size="12" fill="var(--ink)">starts at 64 ft/s ↑</text>
-</svg>`;
-const GARDEN_SVG=`<svg viewBox="0 0 260 220" role="img" aria-label="Model diagram of the garden">
+  <text x="70" y="30" font-size="12" fill="var(--ink)">${what} starts at ${v} ft/s ↑</text>
+</svg>`; }
+const ROCKET_SVG=rocketSVG(48,64,'ball');
+function gardenSVG(len,A,thing){ return `<svg viewBox="0 0 260 220" role="img" aria-label="Model diagram of the ${thing}">
   <rect x="30" y="50" width="200" height="100" fill="var(--soft)" stroke="var(--ink)" stroke-width="2"/>
-  <text x="130" y="105" text-anchor="middle" font-size="14" fill="var(--ink)" font-weight="700">Area = 189 ft²</text>
-  <text x="130" y="40" text-anchor="middle" font-size="14" fill="var(--pen-red)" font-weight="700">length = 2w + 3</text>
+  <text x="130" y="105" text-anchor="middle" font-size="14" fill="var(--ink)" font-weight="700">Area = ${A} ft²</text>
+  <text x="130" y="40" text-anchor="middle" font-size="14" fill="var(--pen-red)" font-weight="700">length = ${len}</text>
   <text x="22" y="104" text-anchor="end" font-size="14" fill="var(--pen-blue)" font-weight="700">w</text>
   <text x="130" y="175" text-anchor="middle" font-size="13" fill="var(--muted)">width = w</text>
-</svg>`;
+</svg>`; }
+const GARDEN_SVG=gardenSVG('2w + 3',189,'garden');
 
 /* ============ problems (same skills as the test, new numbers) ============ */
 const PROBS=[
@@ -282,13 +295,145 @@ const PROBS=[
   ]}
 ];
 
+
+/* ============ extra practice: same four kinds of problems with new random numbers ============ */
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pickOne=a=>a[Math.floor(Math.random()*a.length)];
+const near=(v,x,t=.01)=>v.some(y=>Math.abs(y-x)<t);
+const sg=n=>n<0?'−':'+';
+function polyStr(a,b,c,v='x'){ // 2x² + 10x + 12
+  let out=(a===1?'':a===-1?'−':a)+v+'²';
+  if(b) out+=` ${sg(b)} ${Math.abs(b)===1?'':Math.abs(b)}${v}`;
+  if(c) out+=` ${sg(c)} ${Math.abs(c)}`;
+  return out;
+}
+const desmosStr=(a,b,c)=>'y='+polyStr(a,b,c).replace(/²/g,'^2').replace(/−/g,'-').replace(/\s+/g,'');
+const TOPICS=[{t:'graph',name:'Solve by graphing'},{t:'two',name:'Two methods'},{t:'proj',name:'Projectile motion'},{t:'area',name:'Area'}];
+
+const GEN={
+  graph(){ let a,r1,r2; do{ a=pickOne([1,1,2,3]); r1=ri(-7,6); r2=ri(-7,6); }while(r1===r2||!r1||!r2||(a===2&&[r1,r2].sort().join()==='-2,-3')); return {t:'graph',a,r1,r2}; },
+  two(){ const k=ri(2,12); let c; do{ c=ri(1,30); }while(c===5&&k===5); return {t:'two',k,c}; },
+  proj(){ let h0,v,t; do{ h0=pickOne([16,32,48,64,80,96,112,128,144,160]); v=pickOne([32,48,64,80,96,112,128,144,160,320]); t=(v+Math.sqrt(v*v+64*h0))/32; }
+          while(h0===v||(h0===48&&v===64)||Math.abs(t*100-Math.floor(t*100)-0.5)<0.02||Math.abs(t*100-Math.round(t*100))<0.001); return {t:'proj',h0,v,c:ri(0,2)}; },
+  area(){ let w,m,k,s; do{ w=ri(4,15); m=pickOne([2,3]); k=ri(1,6); s=pickOne([1,-1]); }while(w===9&&m===2&&k===3&&s===1); return {t:'area',w,m,k,s,c:ri(0,2)}; }
+};
+
+const BUILD={
+  graph({a,r1,r2}){
+    const b=-a*(r1+r2), c=a*r1*r2, f=x=>a*x*x+b*x+c, h=(r1+r2)/2, lo=Math.min(r1,r2), hi=Math.max(r1,r2);
+    const x0=Math.min(lo-2,-1), x1=Math.max(hi+2,1), yv=f(h), y0=Math.min(yv,0)-2, y1=Math.max(c,2,-yv)+2;
+    return {title:'Solve by graphing', short:'Graphing', copy:desmosStr(a,b,c),
+      prompt:`Solve <span class="eq">${polyStr(a,b,c)} = 0</span> by graphing. Sketch the graph to show what you found.`,
+      talk:PROBS[0].talk,
+      parts:[
+       {type:'num', q:'Graph it in Desmos and click the x-intercepts. What are the solutions? Type both, separated by a comma.',
+        ans:[r1,r2], tol:0.01,
+        errs:[{test:v=>v.length===1, msg:'This parabola crosses the x-axis twice, so there are <b>two</b> solutions.'},
+              {test:v=>v.some(x=>near([-r1,-r2],x)&&!near([r1,r2],x)), msg:'Check the signs. Look at which side of the y-axis each x-intercept is on.'},
+              {test:v=>near(v,h), msg:`${h} is the vertex, not a solution. Solutions are where the graph crosses the x-axis.`},
+              {test:v=>near(v,c), msg:`${c} is the y-intercept. Solutions are on the x-axis.`}],
+        hint:`Type ${desmosStr(a,b,c)} into Desmos and click the gray dots on the x-axis.`,
+        sol:`x = ${lo} and x = ${hi}.`},
+       {type:'draw', q:'On the scratch board, sketch the graph. Mark and label both x-intercepts.',
+        model:()=>graphSVG(f,[x0,x1],[y0,y1],[[lo,0,`(${lo}, 0)`,'end'],[hi,0,`(${hi}, 0)`,'start']]),
+        check:['Axes are drawn and labeled x and y','A parabola that opens up',`Both x-intercepts are marked: (${lo}, 0) and (${hi}, 0)`,`The solutions are written: x = ${lo}, x = ${hi}`]}
+      ]};
+  },
+  two({k,c}){
+    const d=c+k*k;
+    return {title:'Two methods', short:'Two methods', copy:`y=x^2+${c}`,
+      prompt:`Solve <span class="eq">x² + ${c} = ${d}</span> using two different methods.`,
+      talk:PROBS[1].talk,
+      parts:[
+       {type:'num', q:'<b>Method 1: square roots.</b> What are the solutions? Type both.',
+        ans:[k,-k], tol:0.001,
+        errs:[{test:v=>v.length===1&&Math.abs(Math.abs(v[0])-k)<.01, msg:'Almost! When you take a square root, remember <b>±</b>. There are two answers.'},
+              {test:v=>near(v.map(Math.abs),Math.sqrt(d+c)), msg:`It looks like you added ${c}. Subtract ${c} from both sides first.`},
+              {test:v=>near(v.map(Math.abs),k*k/2), msg:'x² means take the <b>square root</b>, not divide by 2.'}],
+        hint:`Subtract ${c} from both sides, then take the square root of both sides (±).`,
+        sol:`x² + ${c} = ${d} → x² = ${k*k} → x = ±√${k*k} → <b>x = ${k} or x = −${k}</b>`},
+       {type:'draw', q:'On the scratch board, solve it a <b>second way</b> (factoring, graphing, or the quadratic formula) and show every step.',
+        model:()=>`<svg viewBox="0 0 260 200" role="img" aria-label="Model work by factoring"><g font-family="var(--mono)" font-size="15" fill="var(--ink)">
+          <text x="16" y="34">x² + ${c} = ${d}</text><text x="16" y="64">x² − ${k*k} = 0</text><text x="16" y="94">(x − ${k})(x + ${k}) = 0</text>
+          <text x="16" y="124">x − ${k} = 0  or  x + ${k} = 0</text><text x="16" y="160" font-weight="700" fill="var(--pen-red)">x = ${k}  or  x = −${k} ✓</text></g></svg>`,
+        check:['The method is named','Every step is written, not just the answer',`Both answers: x = ${k} and x = −${k}`,'Both methods give the same answers']}
+      ]};
+  },
+  proj({h0,v,c}){
+    const C=[{what:'bottle rocket',verb:'launch a bottle rocket',from:`the roof of a building that is <b>${h0} feet</b> tall`,place:'roof'},
+             {what:'ball',verb:'throw a ball upward',from:`the edge of a cliff that is <b>${h0} feet</b> tall`,place:'cliff'},
+             {what:'water balloon',verb:'toss a water balloon upward',from:`a balcony that is <b>${h0} feet</b> above the ground`,place:'balcony'}][c];
+    const disc=Math.sqrt(v*v+64*h0), t=(v+disc)/32, tn=(v-disc)/32, tr=Math.round(t*100)/100, tv=v/32, hmax=h0+v*v/64;
+    return {title:'Projectile motion', short:'Projectile', copy:`y=-16x^2+${v}x+${h0}`,
+      prompt:`You ${C.verb} from ${C.from}. It starts at <b>${v} feet per second</b>. Its height is modeled by <span class="eq">h = −16t² + ${v}t + ${h0}</span>, where t is time in seconds.`,
+      talk:PROBS[2].talk,
+      parts:[
+       {type:'draw', q:`Draw and label a diagram: the ${C.place}, its height, the path of the ${C.what}, and the ground.`,
+        model:()=>rocketSVG(h0,v,C.what), check:[`The ${C.place} with its height labeled (${h0} ft)`,`The curved path of the ${C.what}`,'The ground labeled (h = 0)','Start and landing points marked']},
+       {type:'mc', q:'What value of h represents the ground?', ch:['h = 0',`h = ${h0}`,`h = ${v}`,'h = −16'], a:0,
+        why:['Right. Height 0 is the ground.',`${h0} is the starting height.`,`${v} is the starting speed, not a height.`,'−16 is from gravity. It is not a height.']},
+       {type:'num', q:`How long does it take the ${C.what} to hit the ground? Round to the nearest <b>hundredth</b> of a second.`,
+        ans:[tr], tol:0.001,
+        errs:[{test:x=>near(x,tn,.006), msg:'That is the negative x-intercept. Time can\'t be negative, so use the other one.'},
+              {test:x=>near(x,t,.006)||near(x,Math.round(t*10)/10,.001)||near(x,Math.round(t),.001), msg:'Close! Round to the nearest <b>hundredth</b> (two decimal places).'},
+              {test:x=>near(x,tv), msg:`t = ${tv} is when it is at its highest point (the vertex). You want when h = 0.`},
+              {test:x=>near(x,hmax,.1), msg:`${hmax} is the maximum height. The question asks for the time when h = 0.`}],
+        hint:`Graph y = −16x² + ${v}x + ${h0} in Desmos and click the x-intercept on the positive side.`,
+        sol:`Set h = 0. The positive x-intercept is t ≈ ${t.toFixed(4)}, so about <b>${tr.toFixed(2)} seconds</b>. (Reject t ≈ ${tn.toFixed(2)} because time can't be negative.)`}
+      ]};
+  },
+  area({w,m,k,s,c}){
+    const thing=['garden','patio','soccer field'][c], L=m*w+s*k, A=w*L, times=m===2?'twice':'three times';
+    const desc=`${k} ${s>0?'more':'less'} than ${times} its width`, lenS=`${m}w ${s>0?'+':'−'} ${k}`, r2=-A/(m*w);
+    return {title:'Area and perimeter', short:'Area', copy:null,
+      prompt:`A rectangular ${thing} has a length that is <b>${desc}</b>. Its area is <b>${A} square feet</b>.`,
+      talk:PROBS[3].talk,
+      parts:[
+       {type:'expr', q:'Let w be the width. Write an expression for the <b>length</b> in terms of w.', ph:'length = ...', target:x=>m*x+s*k,
+        errs:[{test:f=>same(f,x=>m*x), msg:`That is ${times} the width. Now make it ${k} ${s>0?'more':'less'}.`},
+              {test:f=>same(f,x=>m*x-s*k), msg:`Check the sign: "${s>0?'more':'less'}" means ${s>0?'add':'subtract'}.`},
+              {test:f=>same(f,x=>m*(x+s*k)), msg:`Multiply the width by ${m} <b>first</b>, then ${s>0?'add':'subtract'} ${k}.`}],
+        hint:`"${times} the width" is ${m}w. "${k} ${s>0?'more':'less'}" means ${s>0?'+':'−'} ${k}.`, sol:`Length = <b>${lenS}</b>`},
+       {type:'draw', q:`Draw and label a diagram of the ${thing}. Label the width, the length, and the area.`,
+        model:()=>gardenSVG(lenS,A,thing), check:['A rectangle','Width labeled w',`Length labeled ${lenS}`,`Area ${A} ft² written inside or nearby`]},
+       {type:'expr', eq:true, q:`Write an <b>equation</b> to model the area of the ${thing}. Use w for the width.`, ph:'type your equation, e.g. ... = ...', target:x=>x*(m*x+s*k)-A,
+        errs:[{test:(f,src)=>!src.includes('=')&&same(f,x=>x*(m*x+s*k)), msg:`That is the area <b>expression</b>. Set it equal to the area, ${A}.`},
+              {test:(f,src)=>!src.includes('='), msg:'An equation needs an equals sign. What is the area equal to?'},
+              {test:f=>prop(f,x=>2*x+2*(m*x+s*k)-A), msg:'That is the <b>perimeter</b>. Area = width × length.'},
+              {test:f=>prop(f,x=>m*x+s*k-A), msg:'That sets the <b>length</b> equal to the area. Area = width × length.'},
+              {test:f=>isLinear(f), msg:'Your equation has no w² term, so it is adding instead of multiplying. Area = width × length.'}],
+        hint:'Area = width × length. Set the product equal to the area.', sol:`<b>w(${lenS}) = ${A}</b>`},
+       {type:'num', q:'Solve your equation. What is the width, in feet?', ans:[w], tol:0.01,
+        errs:[{test:v=>near(v,r2), msg:'A width can\'t be negative. Use the positive solution.'},
+              {test:v=>near(v,L), msg:`${L} is the <b>length</b>. The width is w.`},
+              {test:v=>v.length>1, msg:'Type only the width that makes sense (one number).'}],
+        hint:'Move everything to one side so it equals 0, then use the quadratic formula, or graph both sides in Desmos (x for w).',
+        sol:`${polyStr(m,s*k,-A,'w')} = 0 → w = ${w} or w ≈ ${Math.round(r2*100)/100}. Width can't be negative, so <b>w = ${w} ft</b>.`},
+       {type:'num', q:'What is the length, in feet?', ans:[L], tol:0.01,
+        errs:[{test:v=>near(v,m*w), msg:`That is ${times} the width. Don't forget to ${s>0?'add':'subtract'} ${k}.`}],
+        hint:`Length = ${lenS}. Use your width.`, sol:`Length = ${m}(${w}) ${s>0?'+':'−'} ${k} = <b>${L} ft</b>. Check: ${w} × ${L} = ${A} ✓`}
+      ]};
+  }
+};
+let EXTRA=[];
+const FIN=4;
+const getP=i=> i<FIN ? PROBS[i] : EXTRA[i-FIN-1];
+const rebuildExtra=()=>{ EXTRA=(S.extra||[]).map(x=>BUILD[x.t](x)); };
+function addExtra(ts){ S.extra=S.extra||[]; const first=FIN+1+S.extra.length; ts.forEach(t=>S.extra.push(GEN[t]())); rebuildExtra(); save(); show(first); }
+/* score: 1 point right on first try, ½ point right after more tries, 0 if the solution was shown. Drawings aren't scored. */
+function scoreOf(idxs){ let pts=0,max=0,first=0,done=0;
+  idxs.forEach(p=>getP(p).parts.forEach((pt,i)=>{ if(pt.type==='draw') return; max++; const st=S.parts[pk(p,i)]||{};
+    if(st.done) done++; if(st.done&&!st.shown){ pts+= st.first?1:0.5; if(st.first) first++; } }));
+  return {pts,max,first,done}; }
+const fmtPts=x=>Number.isInteger(x)?String(x):x.toFixed(1);
+
 /* ============ state ============ */
 let S = null;
 let setup = {mode:'pair', names:['','']};
 function fresh(){ return {mode:setup.mode, names:setup.names.map((n,i)=>n.trim()||`Partner ${i?'B':'A'}`), cur:0, parts:{}, boards:{}, conf:{}}; }
 const pk=(p,i)=>p+'-'+i;
 const pst=(p,i)=>S.parts[pk(p,i)]||(S.parts[pk(p,i)]={});
-const probDone=p=>PROBS[p].parts.every((_,i)=>S.parts[pk(p,i)]?.done);
+const probDone=p=>getP(p).parts.every((_,i)=>S.parts[pk(p,i)]?.done);
 
 /* ============ setup screen ============ */
 function renderSetup(){
@@ -364,6 +509,7 @@ function renderMain(){
     </aside>
   </div>`;
   $('#restart').onclick=()=>{ if(confirm('Start over? This clears your answers and drawings.')){ try{localStorage.removeItem(SAVE);}catch(e){} S=null; setup={mode:'pair',names:['','']}; renderSetup(); } };
+  rebuildExtra();
   Board.init();
   document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>setTab(t.dataset.tab));
   setTab(S.tab||'desmos');
@@ -381,14 +527,15 @@ function toBoard(){ if(S.tab!=='board') setTab('board'); }
 
 function renderSteps(){
   $('#steps').innerHTML=PROBS.map((p,i)=>`<button class="step" data-i="${i}" aria-current="${S.cur===i}">${i+1}. ${p.short}${probDone(i)?'<span class="ck">✓</span>':''}</button>`).join('')
-    +`<button class="step" data-i="${PROBS.length}" aria-current="${S.cur===PROBS.length}">Finish</button>`;
+    +`<button class="step" data-i="${FIN}" aria-current="${S.cur===FIN}">Score</button>`
+    +EXTRA.map((p,j)=>{ const i=FIN+1+j; return `<button class="step extra" data-i="${i}" aria-current="${S.cur===i}">+ ${p.short}${probDone(i)?'<span class="ck">✓</span>':''}</button>`; }).join('');
   $('#steps').onclick=e=>{ const b=e.target.closest('.step'); if(b) show(+b.dataset.i); };
 }
 
 function show(i){
   S.cur=i; save(); renderSteps();
-  $('#tools').style.display = i===PROBS.length ? 'none' : '';
-  if(i===PROBS.length){ renderFinish(); return; }
+  $('#tools').style.display = i===FIN ? 'none' : '';
+  if(i===FIN){ renderFinish(); return; }
   Board.load(i);
   $('#boardfor').textContent='Problem '+(i+1);
   renderProb(i);
@@ -401,22 +548,22 @@ function roleLine(p){
 }
 
 function renderProb(p){
-  const P=PROBS[p];
+  const P=getP(p), isX=p>FIN, xn=p-FIN, nextX=isX&&p<FIN+EXTRA.length;
   $('#prob').innerHTML=`<section class="panel">
-    <div class="eyebrow">Problem ${p+1} of ${PROBS.length} · ${P.title}</div>
+    <div class="eyebrow">${isX?`Extra practice ${xn}`:`Problem ${p+1} of ${PROBS.length}`} · ${P.title}</div>
     <p class="prompt">${P.prompt}</p>
     ${P.copy?`<div class="row"><span class="mono" style="font-size:15px;color:var(--muted)">For Desmos:</span> <span class="eq">${esc(P.copy)}</span> <button class="btn small" id="copy">Copy</button></div>`:''}
     ${roleLine(p)}
     ${P.parts.map((pt,i)=>`<div class="part ${pst(p,i).done?'done':''}" id="part${i}"></div>`).join('')}
     <div class="talk"><b>${S.mode==='pair'?'Talk about it':'Think about it'}:</b> ${P.talk}</div>
     <div class="nav">
-      ${p>0?`<button class="btn" id="prev">← Problem ${p}</button>`:'<span></span>'}
-      <button class="btn primary" id="next">${p<PROBS.length-1?`Next: Problem ${p+2} →`:'Finish →'}</button>
+      ${isX?`<button class="btn" id="prev">← Score</button>`:p>0?`<button class="btn" id="prev">← Problem ${p}</button>`:'<span></span>'}
+      <button class="btn primary" id="next">${isX?(nextX?'Next extra problem →':'See my score →'):p<PROBS.length-1?`Next: Problem ${p+2} →`:'Finish and see my score →'}</button>
     </div></section>`;
   P.parts.forEach((_,i)=>renderPart(p,i));
   if(P.copy) $('#copy').onclick=e=>copyText(P.copy,e.target);
-  const pv=$('#prev'); if(pv) pv.onclick=()=>show(p-1);
-  $('#next').onclick=()=>show(p+1);
+  const pv=$('#prev'); if(pv) pv.onclick=()=>show(isX?FIN:p-1);
+  $('#next').onclick=()=>show(isX&&!nextX?FIN:p+1);
 }
 
 function copyText(t,btn){
@@ -428,7 +575,7 @@ function copyText(t,btn){
 
 const L='abcdefgh';
 function renderPart(p,i){
-  const pt=PROBS[p].parts[i], st=pst(p,i), el=$('#part'+i);
+  const pt=getP(p).parts[i], st=pst(p,i), el=$('#part'+i);
   el.className='part'+(st.done?' done':'');
   let h=`<h3><span class="pl">${L[i]})</span></h3><div class="q">${pt.q}</div>`;
   if(pt.type==='mc'){
@@ -467,7 +614,7 @@ function renderPart(p,i){
       if(pick.join()===[...pt.a].sort().join()){ st.done=true; st.first=st.tries===1; st.msg='Right! '+pt.sol; }
       else st.msg = pick.some(k=>!pt.a.includes(k)) ? 'At least one of your picks does not work. '+pt.hint : 'Everything you picked works, but you missed at least one. '+pt.hint;
       save(); renderPart(p,i); renderSteps(); };
-    const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.picked=pt.a; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); };
+    const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.shown=true; st.picked=pt.a; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); };
   }
   if(pt.type==='num'){
     const inp=$('#in'+i);
@@ -483,7 +630,7 @@ function renderPart(p,i){
     };
     if(!st.done){ $('#chk'+i).onclick=check; inp.onkeydown=e=>{ if(e.key==='Enter') check(); };
       $('#hint'+i).onclick=()=>{ st.val=inp.value; st.hint=true; save(); renderPart(p,i); };
-      const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.val=pt.ans.join(', '); st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
+      const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.shown=true; st.val=pt.ans.join(', '); st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
   }
   if(pt.type==='expr'){
     const inp=$('#in'+i);
@@ -501,7 +648,7 @@ function renderPart(p,i){
     };
     if(!st.done){ $('#chk'+i).onclick=check; inp.onkeydown=e=>{ if(e.key==='Enter') check(); };
       $('#hint'+i).onclick=()=>{ st.val=inp.value; st.hint=true; save(); renderPart(p,i); };
-      const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
+      const s=$('#sol'+i); if(s) s.onclick=()=>{ st.done=true; st.shown=true; st.msg=pt.sol; save(); renderPart(p,i); renderSteps(); }; }
   }
   if(pt.type==='draw'){ const g=$('#gob'+i); if(g) g.onclick=toBoard; }
   if(pt.type==='draw'){ const b=$('#cmp'+i); if(b) b.onclick=()=>{ st.done=true; save(); renderPart(p,i); renderSteps(); }; }
@@ -540,14 +687,28 @@ function parseNums(s){
 
 /* ============ finish ============ */
 function renderFinish(){
-  let total=0, first=0;
-  PROBS.forEach((P,p)=>P.parts.forEach((pt,i)=>{ if(pt.type==='draw') return; total++; if(S.parts[pk(p,i)]?.first) first++; }));
+  const main=scoreOf([0,1,2,3]), pct=main.max?Math.round(100*main.pts/main.max):0;
   const left=PROBS.map((P,p)=>probDone(p)?null:`Problem ${p+1} (${P.short})`).filter(Boolean);
+  const rows=PROBS.map((P,p)=>({P,p,sc:scoreOf([p])}));
+  const xs=EXTRA.map((_,j)=>FIN+1+j), xsc=scoreOf(xs);
+  const weak=rows.filter(r=>r.sc.pts<r.sc.max).map(r=>TOPICS[r.p].t);
   $('#prob').innerHTML=`<section class="panel">
-    <div class="eyebrow">Finish</div>
-    <h2 style="font-size:28px;margin:4px 0 8px">${left.length?'Almost there':'Warm-up complete!'}</h2>
-    <p>${first} of ${total} answers right on the first try.${left.length?` Still to finish: ${left.join(', ')}.`:''}</p>
-    <h3 style="font-size:20px;margin-top:16px">How ready do you feel?</h3>
+    <div class="eyebrow">${left.length?'Not finished yet':'Warm-up complete!'}</div>
+    <div class="scorebig"><div><div class="num">${fmtPts(main.pts)}<span> / ${main.max}</span></div><div class="pct">${pct}%</div></div>
+      <p>${main.first} of ${main.max} answers right on the first try.${left.length?`<br><b>Still to finish:</b> ${left.join(', ')}.`:''}</p></div>
+    <p class="scorenote">Scoring: 1 point for a right answer on the first try, ½ point if it took more tries, 0 if you showed the solution. Drawings are not scored.</p>
+    <table class="data scoretab"><thead><tr><th>Problem</th><th>Score</th><th>First try</th><th></th></tr></thead><tbody>
+      ${rows.map(({P,p,sc})=>`<tr><td><b>${p+1}. ${P.title}</b></td><td class="mono">${fmtPts(sc.pts)} / ${sc.max}</td><td class="mono">${sc.first} / ${sc.max}</td>
+        <td><button class="btn small ${sc.pts<sc.max&&probDone(p)?'blue':''}" data-more="${TOPICS[p].t}">More like this</button></td></tr>`).join('')}
+    </tbody></table>
+    ${xs.length?`<p style="margin-top:12px"><b>Extra practice:</b> <span class="mono">${fmtPts(xsc.pts)} / ${xsc.max}</span> (${xsc.first} right on the first try, ${EXTRA.length} problem${EXTRA.length>1?'s':''})</p>`:''}
+    <h3 style="font-size:20px;margin-top:20px">Want more practice?</h3>
+    <p style="margin:4px 0 10px">Each button makes a new problem like the ones above, with different numbers. ${weak.length?'Blue buttons are the topics where you lost points.':''}</p>
+    <div class="row">
+      ${weak.length?`<button class="btn blue" data-set="weak">Practice what I missed (${weak.length})</button>`:''}
+      <button class="btn primary" data-set="mixed">Mixed set: one of each</button>
+    </div>
+    <h3 style="font-size:20px;margin-top:22px">How ready do you feel?</h3>
     <div class="conf">${PROBS.map((P,p)=>`<div class="item"><b>${P.title}</b><div class="row">${['Got it','Need another look'].map(o=>`<button class="btn small" data-p="${p}" data-o="${o}" aria-pressed="${S.conf[p]===o}">${o}</button>`).join('')}</div></div>`).join('')}</div>
     <h3 style="font-size:20px;margin-top:20px">Before the test, remember</h3>
     <ul class="tips">
@@ -560,6 +721,8 @@ function renderFinish(){
     <div class="nav"><button class="btn" id="back">← Back to Problem ${PROBS.length}</button></div>
   </section>`;
   $('#prob').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{ S.conf[b.dataset.p]=b.dataset.o; save(); renderFinish(); });
+  $('#prob').querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>addExtra([b.dataset.more]));
+  $('#prob').querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>addExtra(b.dataset.set==='weak'?weak:TOPICS.map(t=>t.t)));
   $('#back').onclick=()=>show(PROBS.length-1);
 }
 

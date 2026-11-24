@@ -15,7 +15,9 @@ Four problems, one for each kind of question on the test. The numbers are new, b
 - **Desmos built in** next to the problem (split screen), plus a Copy button with each equation ready to paste.
 - A built-in **scratch board** with pens, eraser, undo, grid, and a bigger view. Each problem has its own board.
 - Instant feedback on common mistakes, hints, and worked solutions after two tries.
-- A finish screen with a self-rating for each topic and test reminders.
+- A **score screen**: 1 point for each answer right on the first try, ½ point if it took more tries, 0 if the student showed the solution. It breaks the score down by problem.
+- **More practice:** students can make new problems like any of the four, with fresh random numbers. They can also choose "Practice what I missed" or a mixed set of four.
+- A self-rating for each topic and test reminders.
 
 ## How to open it
 Turn on GitHub Pages (Settings → Pages → Deploy from a branch → `main`, folder `/ (root)`).
